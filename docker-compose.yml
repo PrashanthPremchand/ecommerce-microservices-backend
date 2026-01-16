@@ -47,19 +47,21 @@ services:
     ports:
       - "27017:27017"
     restart: unless-stopped
-    healthcheck:
-      test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
-      interval: 5s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
+#    healthcheck:
+#      test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
+#      interval: 5s
+#      timeout: 5s
+#      retries: 3
+#      start_period: 10s
 
   mongo-express:
     container_name: ms_mongo_express
     image: mongo-express
     depends_on:
-      mongodb:
-        condition: service_healthy
+      - mongodb
+#    depends_on:
+#      mongodb:
+#        condition: service_healthy
     environment:
       ME_CONFIG_MONGODB_ADMINUSERNAME: prashanth
       ME_CONFIG_MONGODB_ADMINPASSWORD: prashanth

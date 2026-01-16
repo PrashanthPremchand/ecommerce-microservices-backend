@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="SpringNativeSettings">
+    <option name="linkedExternalProjectsSettings">
+      <NativeProjectSettings>
+        <option name="externalProjectPath" value="$PROJECT_DIR$/services/discovery/src/main/java/com/prashanth/discovery/DiscoveryApplication.java" />
+        <option name="qualifiedMainClassName" value="com.prashanth.discovery.DiscoveryApplication" />
+        <option name="runConfigurationName" value="DiscoveryApplication" />
+      </NativeProjectSettings>
+    </option>
+  </component>
+</project>
