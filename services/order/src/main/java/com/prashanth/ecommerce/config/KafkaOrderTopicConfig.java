@@ -10,10 +10,11 @@ public class KafkaOrderTopicConfig {
 
     @Bean
     public NewTopic orderTopic() {
+
         return TopicBuilder
                 .name("order-topic")
                 .build();
-    }
 
+    }
 
 }
