@@ -19,6 +19,7 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: docker,native
       SPRING_CLOUD_CONFIG_URI: http://config-server:8888
+      SPRING_CONFIG_IMPORT: "configserver:http://config-server:8888"
     networks:
       - microservices-net
 
@@ -33,6 +34,7 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: docker,native
       SPRING_CLOUD_CONFIG_URI: http://config-server:8888
+      SPRING_CONFIG_IMPORT: "configserver:http://config-server:8888"
       JWT_SECRET: ${JWT_SECRET}
     networks:
       - microservices-net
@@ -49,6 +51,7 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: docker,native
       SPRING_CLOUD_CONFIG_URI: http://config-server:8888
+      SPRING_CONFIG_IMPORT: "configserver:http://config-server:8888"
       JWT_SECRET: ${JWT_SECRET}
       MONGO_USERNAME: ${MONGO_USERNAME}
       MONGO_PASSWORD: ${MONGO_PASSWORD}
@@ -71,6 +74,7 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: docker,native
       SPRING_CLOUD_CONFIG_URI: http://config-server:8888
+      SPRING_CONFIG_IMPORT: "configserver:http://config-server:8888"
       DB_HOST: postgres
       DB_PORT: 5432
       DB_USERNAME: ${POSTGRES_USER:-postgres}
@@ -93,6 +97,7 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: docker,native
       SPRING_CLOUD_CONFIG_URI: http://config-server:8888
+      SPRING_CONFIG_IMPORT: "configserver:http://config-server:8888"
       DB_HOST: postgres
       DB_PORT: 5432
       DB_USERNAME: ${POSTGRES_USER:-postgres}
@@ -116,6 +121,7 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: docker,native
       SPRING_CLOUD_CONFIG_URI: http://config-server:8888
+      SPRING_CONFIG_IMPORT: "configserver:http://config-server:8888"
       DB_HOST: postgres
       DB_PORT: 5432
       DB_USERNAME: ${POSTGRES_USER:-postgres}
@@ -138,6 +144,7 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: docker,native
       SPRING_CLOUD_CONFIG_URI: http://config-server:8888
+      SPRING_CONFIG_IMPORT: "configserver:http://config-server:8888"
       MONGO_USERNAME: ${MONGO_USERNAME}
       MONGO_PASSWORD: ${MONGO_PASSWORD}
       MONGO_HOST: mongodb
