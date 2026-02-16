@@ -8,6 +8,13 @@ services:
       SPRING_PROFILES_ACTIVE: docker,native
     networks:
       - microservices-net
+    # ADDED: Healthcheck to ensure it's actually serving config before others start
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8888/application/default"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
 
   discovery-server:
     image: ${DOCKER_USERNAME}/discovery-server:latest
@@ -15,13 +22,20 @@ services:
     ports:
       - "8761:8761"
     depends_on:
-      - config-server
+      config-server:
+        condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: docker,native
       SPRING_CLOUD_CONFIG_URI: http://config-server:8888
       SPRING_CONFIG_IMPORT: "configserver:http://config-server:8888"
     networks:
       - microservices-net
+    # ADDED: Healthcheck for Eureka
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8761/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   gateway-service:
     image: ${DOCKER_USERNAME}/gateway-service:latest
@@ -29,8 +43,10 @@ services:
     ports:
       - "8222:8222"
     depends_on:
-      - config-server
-      - discovery-server
+      config-server:
+        condition: service_healthy
+      discovery-server:
+        condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: docker,native
       SPRING_CLOUD_CONFIG_URI: http://config-server:8888
@@ -45,9 +61,12 @@ services:
     ports:
       - "8090:8090"
     depends_on:
-      - mongodb
-      - config-server
-      - discovery-server
+      mongodb:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+      discovery-server:
+        condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: docker,native
       SPRING_CLOUD_CONFIG_URI: http://config-server:8888
@@ -68,9 +87,12 @@ services:
     ports:
       - "8050:8050"
     depends_on:
-      - postgres
-      - config-server
-      - discovery-server
+      postgres:
+        condition: service_started # Standard postgres doesn't always have a healthcheck unless defined
+      config-server:
+        condition: service_healthy
+      discovery-server:
+        condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: docker,native
       SPRING_CLOUD_CONFIG_URI: http://config-server:8888
@@ -88,12 +110,12 @@ services:
     ports:
       - "8070:8070"
     depends_on:
-      - postgres
-      - kafka
-      - config-server
-      - discovery-server
-      - product-service
-      - payment-service
+      postgres:
+        condition: service_started
+      config-server:
+        condition: service_healthy
+      discovery-server:
+        condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: docker,native
       SPRING_CLOUD_CONFIG_URI: http://config-server:8888
@@ -114,10 +136,12 @@ services:
     ports:
       - "8060:8060"
     depends_on:
-      - postgres
-      - kafka
-      - config-server
-      - discovery-server
+      postgres:
+        condition: service_started
+      config-server:
+        condition: service_healthy
+      discovery-server:
+        condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: docker,native
       SPRING_CLOUD_CONFIG_URI: http://config-server:8888
@@ -136,11 +160,14 @@ services:
     ports:
       - "8040:8040"
     depends_on:
-      - mongodb
-      - kafka
-      - mail-dev
-      - config-server
-      - discovery-server
+      mongodb:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+      discovery-server:
+        condition: service_healthy
+      kafka:
+        condition: service_started
     environment:
       SPRING_PROFILES_ACTIVE: docker,native
       SPRING_CLOUD_CONFIG_URI: http://config-server:8888
@@ -158,134 +185,3 @@ services:
       MAIL_PASSWORD: ${MAIL_PASSWORD}
     networks:
       - microservices-net
-
-  postgres:
-    container_name: ms_pg_sql
-    image: postgres:latest
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      PGDATA: /var/lib/postgresql/data/pgdata
-    volumes:
-      - postgres:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-    networks:
-      - microservices-net
-    restart: unless-stopped
-
-  pgadmin:
-    container_name: ms_pgadmin
-    image: dpage/pgadmin4:latest
-    depends_on:
-      - postgres
-    environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-pgadmin@pgadmin.org}
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
-      PGADMIN_CONFIG_SERVER_MODE: 'False'
-    volumes:
-      - pgadmin:/var/lib/pgadmin
-    ports:
-      - "5050:80"
-    networks:
-      - microservices-net
-    restart: unless-stopped
-
-  mongodb:
-    container_name: ms_mongo_db
-    image: mongo:latest
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
-    volumes:
-      - mongo:/data/db
-    networks:
-      microservices-net:
-        aliases:
-          - mongo
-          - mongodb
-    ports:
-      - "27017:27017"
-    restart: unless-stopped
-    healthcheck:
-      test: >
-        mongosh --username ${MONGO_USERNAME} 
-        --password ${MONGO_PASSWORD} 
-        --authenticationDatabase admin 
-        --eval "db.adminCommand('ping')"
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 20s
-
-  mongo-express:
-    container_name: ms_mongo_express
-    image: mongo-express:latest
-    depends_on:
-      mongodb:
-        condition: service_healthy
-    environment:
-      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_USERNAME}
-      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_PASSWORD}
-      ME_CONFIG_MONGODB_SERVER: mongodb
-      ME_CONFIG_BASICAUTH_USERNAME: ${MONGO_USERNAME}
-      ME_CONFIG_BASICAUTH_PASSWORD: ${MONGO_PASSWORD}
-    ports:
-      - "8081:8081"
-    networks:
-      - microservices-net
-    restart: unless-stopped
-
-  zookeeper:
-    container_name: ms_zookeeper
-    image: confluentinc/cp-zookeeper:7.4.0
-    environment:
-      ZOOKEEPER_SERVER_ID: 1
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-    ports:
-      - "2181:2181"
-    networks:
-      - microservices-net
-
-  kafka:
-    container_name: ms_kafka
-    image: confluentinc/cp-kafka:7.4.0
-    depends_on:
-      - zookeeper
-    environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
-      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
-    ports:
-      - "9092:9092"
-      - "29092:29092"
-    networks:
-      - microservices-net
-    restart: unless-stopped
-
-  mail-dev:
-    container_name: ms_mail_dev
-    image: maildev/maildev:latest
-    ports:
-      - "1080:1080"
-      - "1025:1025"
-    networks:
-      - microservices-net
-    restart: unless-stopped
-
-networks:
-  microservices-net:
-    driver: bridge
-
-volumes:
-  postgres:
-  pgadmin:
-  mongo:
