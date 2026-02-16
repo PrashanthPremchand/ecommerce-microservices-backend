@@ -9,11 +9,11 @@ services:
     networks:
       - microservices-net
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8888/application/default"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 15s
+      test: [ "CMD-SHELL", "wget -q --spider http://localhost:8888/application/default || exit 1" ]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 40s
 
   discovery-server:
     image: ${DOCKER_USERNAME}/discovery-server:latest
@@ -30,10 +30,11 @@ services:
     networks:
       - microservices-net
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8761/"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8761/ || curl -f http://localhost:8761/ || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 40s
 
   gateway-service:
     image: ${DOCKER_USERNAME}/gateway-service:latest
