@@ -1,0 +1,6 @@
+eureka:
+  instance:
+    hostname: discovery-server
+
+server:
+  port: ${SERVER_PORT:8761}

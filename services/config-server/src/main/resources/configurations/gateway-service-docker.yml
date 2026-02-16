@@ -1,0 +1,11 @@
+server:
+  port: ${SERVER_PORT:8222}
+
+application:
+  security:
+    jwt:
+      secret-key: ${JWT_SECRET}
+
+eureka:
+  instance:
+    hostname: gateway-service

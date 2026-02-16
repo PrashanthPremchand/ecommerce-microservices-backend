@@ -1,0 +1,21 @@
+spring:
+  mongodb:
+    username: ${MONGO_USERNAME}
+    password: ${MONGO_PASSWORD}
+    host: ${MONGO_HOST:mongodb}
+    port: ${MONGO_PORT:27017}
+    database: ${MONGO_DATABASE:customer}
+    authentication-database: ${MONGO_AUTH_DB:admin}
+
+server:
+  port: ${SERVER_PORT:8090}
+
+application:
+  security:
+    jwt:
+      secret-key: ${JWT_SECRET}
+
+eureka:
+  instance:
+    hostname: customer-service
+

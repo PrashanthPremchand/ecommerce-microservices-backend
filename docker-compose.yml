@@ -1,10 +1,163 @@
 services:
+  config-server:
+    image: ${DOCKER_USERNAME}/config-server:latest
+    container_name: config-server
+    ports:
+      - "8888:8888"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
+    networks:
+      - microservices-net
+
+  discovery-server:
+    image: ${DOCKER_USERNAME}/discovery-server:latest
+    container_name: discovery-server
+    ports:
+      - "8761:8761"
+    depends_on:
+      - config-server
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
+      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
+    networks:
+      - microservices-net
+
+  gateway-service:
+    image: ${DOCKER_USERNAME}/gateway-service:latest
+    container_name: gateway-service
+    ports:
+      - "8222:8222"
+    depends_on:
+      - config-server
+      - discovery-server
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
+      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
+      JWT_SECRET: ${JWT_SECRET}
+    networks:
+      - microservices-net
+
+  customer-service:
+    image: ${DOCKER_USERNAME}/customer-service:latest
+    container_name: customer-service
+    ports:
+      - "8090:8090"
+    depends_on:
+      - mongodb
+      - config-server
+      - discovery-server
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
+      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
+      JWT_SECRET: ${JWT_SECRET}
+      MONGO_USERNAME: ${MONGO_USERNAME}
+      MONGO_PASSWORD: ${MONGO_PASSWORD}
+      MONGO_HOST: mongodb
+      MONGO_PORT: 27017
+      MONGO_DATABASE: customer
+      MONGO_AUTH_DB: admin
+    networks:
+      - microservices-net
+
+  product-service:
+    image: ${DOCKER_USERNAME}/product-service:latest
+    container_name: product-service
+    ports:
+      - "8050:8050"
+    depends_on:
+      - postgres
+      - config-server
+      - discovery-server
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
+      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+    networks:
+      - microservices-net
+
+  order-service:
+    image: ${DOCKER_USERNAME}/order-service:latest
+    container_name: order-service
+    ports:
+      - "8070:8070"
+    depends_on:
+      - postgres
+      - kafka
+      - config-server
+      - discovery-server
+      - product-service
+      - payment-service
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
+      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      GATEWAY_HOST: gateway-service
+      GATEWAY_PORT: 8222
+    networks:
+      - microservices-net
+
+  payment-service:
+    image: ${DOCKER_USERNAME}/payment-service:latest
+    container_name: payment-service
+    ports:
+      - "8060:8060"
+    depends_on:
+      - postgres
+      - kafka
+      - config-server
+      - discovery-server
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
+      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+    networks:
+      - microservices-net
+
+  notification-service:
+    image: ${DOCKER_USERNAME}/notification-service:latest
+    container_name: notification-service
+    ports:
+      - "8040:8040"
+    depends_on:
+      - mongodb
+      - kafka
+      - mail-dev
+      - config-server
+      - discovery-server
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
+      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
+      MONGO_USERNAME: ${MONGO_USERNAME}
+      MONGO_PASSWORD: ${MONGO_PASSWORD}
+      MONGO_HOST: mongodb
+      MONGO_PORT: 27017
+      MONGO_DATABASE: customer
+      MONGO_AUTH_DB: admin
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      MAIL_HOST: mail-dev
+      MAIL_PORT: 1025
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+    networks:
+      - microservices-net
+
   postgres:
     container_name: ms_pg_sql
-    image: postgres
+    image: postgres:latest
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: PostgreSQLPass@2025
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
       - postgres:/var/lib/postgresql/data
@@ -16,7 +169,7 @@ services:
 
   pgadmin:
     container_name: ms_pgadmin
-    image: dpage/pgadmin4
+    image: dpage/pgadmin4:latest
     depends_on:
       - postgres
     environment:
@@ -33,41 +186,39 @@ services:
 
   mongodb:
     container_name: ms_mongo_db
-    image: mongo
+    image: mongo:latest
     environment:
-      MONGO_INITDB_ROOT_USERNAME: prashanth
-      MONGO_INITDB_ROOT_PASSWORD: prashanth
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
     volumes:
       - mongo:/data/db
     networks:
       microservices-net:
         aliases:
-          - mongo      # Entrypoint script looks for this
-          - mongodb    # Your app uses this
+          - mongo
+          - mongodb
     ports:
       - "27017:27017"
     restart: unless-stopped
-#    healthcheck:
-#      test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
-#      interval: 5s
-#      timeout: 5s
-#      retries: 3
-#      start_period: 10s
+    healthcheck:
+      test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   mongo-express:
     container_name: ms_mongo_express
-    image: mongo-express
+    image: mongo-express:latest
     depends_on:
-      - mongodb
-#    depends_on:
-#      mongodb:
-#        condition: service_healthy
+      mongodb:
+        condition: service_healthy
     environment:
-      ME_CONFIG_MONGODB_ADMINUSERNAME: prashanth
-      ME_CONFIG_MONGODB_ADMINPASSWORD: prashanth
+      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_USERNAME}
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_PASSWORD}
       ME_CONFIG_MONGODB_SERVER: mongodb
-      ME_CONFIG_BASICAUTH_USERNAME: prashanth_ui
-      ME_CONFIG_BASICAUTH_PASSWORD: securepassword123
+      ME_CONFIG_BASICAUTH_USERNAME: ${MONGO_USERNAME}
+      ME_CONFIG_BASICAUTH_PASSWORD: ${MONGO_PASSWORD}
     ports:
       - "8081:8081"
     networks:
@@ -82,7 +233,7 @@ services:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
     ports:
-      - "22181:2181"
+      - "2181:2181"
     networks:
       - microservices-net
 
@@ -92,20 +243,26 @@ services:
     depends_on:
       - zookeeper
     environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
     ports:
       - "9092:9092"
+      - "29092:29092"
     networks:
       - microservices-net
+    restart: unless-stopped
 
   mail-dev:
     container_name: ms_mail_dev
-    image: maildev/maildev
+    image: maildev/maildev:latest
     ports:
       - "1080:1080"
       - "1025:1025"
