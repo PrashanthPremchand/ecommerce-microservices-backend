@@ -25,7 +25,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
 
 
-    public void register(RegisterRequest request) throws CustomerAlreadyExistException {
+    public void register(RegisterRequest request) {
 
         if(customerService.existsByEmail(request.getEmail())) {
 
