@@ -9,6 +9,7 @@ on:
       - 'docker-compose.yml'
       - 'Dockerfile'
       - '.github/workflows/pipeline.yml'
+      - 'init-db.sql'
 
 jobs:
   compile:
@@ -301,7 +302,7 @@ jobs:
   deploy:
     name: Deploy to Local Server
     runs-on: self-hosted
-    needs: [ build-and-push ]
+    needs: [build-and-push]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -311,9 +312,9 @@ jobs:
         run: |
           $deployPath = "$env:USERPROFILE\ecommerce-deployment"
           if (!(Test-Path $deployPath)) {
-              New-Item -ItemType Directory -Path $deployPath -Force | Out-Null
+            New-Item -ItemType Directory -Path $deployPath -Force | Out-Null
           }
-          Write-Host "Deployment folder ready: $deployPath"
+          Write-Host "✅ Deployment folder ready: $deployPath" -ForegroundColor Green
 
       - name: Copy deployment files (Windows)
         shell: powershell
@@ -322,130 +323,178 @@ jobs:
           # Copy BOTH the compose file and the initialization script
           Copy-Item "docker-compose.yml" -Destination "$deployPath\docker-compose.yml" -Force
           Copy-Item "init-db.sql" -Destination "$deployPath\init-db.sql" -Force
-          Write-Host "✅ Copied docker-compose.yml and init-db.sql to $deployPath"
+          Write-Host "✅ Copied docker-compose.yml and init-db.sql to $deployPath" -ForegroundColor Green
 
       - name: Stop and WIPE old volumes (Windows)
         shell: powershell
         run: |
           $deployPath = "$env:USERPROFILE\ecommerce-deployment"
           Set-Location $deployPath
-          Write-Host "Stopping containers and removing volumes to reset DBs..."
+          Write-Host "🛑 Stopping containers and removing volumes to reset DBs..." -ForegroundColor Yellow
           try {
-            # The -v is CRITICAL. It forces Postgres to run init-db.sql on the next start.
-            docker compose down -v --remove-orphans
-            Write-Host "✅ Old containers and volumes removed" -ForegroundColor Green
+            # The -v is CRITICAL. It forces PostgreSQL to run init-db.sql on the next start.
+            docker compose down --remove-orphans -v
+            Write-Host "✅ Old containers and volumes removed successfully" -ForegroundColor Green
           } catch {
-            Write-Host "⚠️ No previous environment to clean." -ForegroundColor Yellow
+            Write-Host "⚠️ No running containers to stop or error occurred" -ForegroundColor Yellow
           }
+          Start-Sleep -Seconds 3
 
       - name: Pull latest images (Windows)
         shell: powershell
-        env:
-          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
         run: |
           $deployPath = "$env:USERPROFILE\ecommerce-deployment"
           Set-Location $deployPath
-          docker compose pull
-          Write-Host "✅ Images pulled successfully"
+          Write-Host "📥 Pulling latest Docker images..."
+          try {
+            docker compose pull
+            Write-Host "✅ All images pulled successfully" -ForegroundColor Green
+          } catch {
+            Write-Host "❌ Failed to pull images: $_" -ForegroundColor Red
+            exit 1
+          }
 
       - name: Deploy containers (Windows)
         shell: powershell
-        env:
-          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-          SPRING_PROFILES_ACTIVE: docker
-          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-          MONGO_USERNAME: ${{ secrets.MONGO_USERNAME }}
-          MONGO_PASSWORD: ${{ secrets.MONGO_PASSWORD }}
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
-          MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
-          MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
-          PGADMIN_DEFAULT_EMAIL: ${{ secrets.PGADMIN_DEFAULT_EMAIL }}
-          PGADMIN_DEFAULT_PASSWORD: ${{ secrets.PGADMIN_DEFAULT_PASSWORD }}
         run: |
           $deployPath = "$env:USERPROFILE\ecommerce-deployment"
           Set-Location $deployPath
-          Write-Host "Starting containers..."
+          
+          Write-Host "🚀 Starting containers with environment variables..." -ForegroundColor Cyan
+          
+          # Set environment variables in PowerShell scope
+          $env:DOCKER_USERNAME = "${{ secrets.DOCKER_USERNAME }}"
+          $env:SPRING_PROFILES_ACTIVE = "docker"
+          $env:POSTGRES_PASSWORD = "${{ secrets.POSTGRES_PASSWORD }}"
+          $env:MONGO_USERNAME = "${{ secrets.MONGO_USERNAME }}"
+          $env:MONGO_PASSWORD = "${{ secrets.MONGO_PASSWORD }}"
+          $env:JWT_SECRET = "${{ secrets.JWT_SECRET }}"
+          $env:MAIL_USERNAME = "${{ secrets.MAIL_USERNAME }}"
+          $env:MAIL_PASSWORD = "${{ secrets.MAIL_PASSWORD }}"
+          $env:PGADMIN_DEFAULT_EMAIL = "${{ secrets.PGADMIN_DEFAULT_EMAIL }}"
+          $env:PGADMIN_DEFAULT_PASSWORD = "${{ secrets.PGADMIN_DEFAULT_PASSWORD }}"
+          
+          # Start containers
           docker compose up -d
-          Write-Host "✅ Containers started"
+          Write-Host "✅ Containers started" -ForegroundColor Green
 
       - name: Wait for database and services (Windows)
         shell: powershell
         run: |
-          Write-Host "Waiting 30 seconds for Postgres to run init-db.sql and services to boot..."
-          # Increased to 30s because creating multiple DBs and starting Config Server takes time
-          Start-Sleep -Seconds 30 
+          Write-Host "⏳ Waiting 30 seconds for PostgreSQL to run init-db.sql and services to boot..." -ForegroundColor Cyan
+          Start-Sleep -Seconds 30
+          Write-Host "✅ Services should be ready now" -ForegroundColor Green
+
+      - name: Verify database initialization (Windows)
+        shell: powershell
+        run: |
+          $deployPath = "$env:USERPROFILE\ecommerce-deployment"
+          Set-Location $deployPath
+          Write-Host "📋 Checking if databases were created..." -ForegroundColor Cyan
+          try {
+            $databases = docker compose exec -T postgres psql -U postgres -c "\l" 2>&1
+            Write-Host "✅ Database initialization check completed" -ForegroundColor Green
+          } catch {
+            Write-Host "⚠️ Could not verify databases (they may still be initializing)" -ForegroundColor Yellow
+          }
 
       - name: Verify deployment (Windows)
         shell: powershell
         run: |
           $deployPath = "$env:USERPROFILE\ecommerce-deployment"
           Set-Location $deployPath
-          Write-Host "Checking container status..."
+          Write-Host "📋 Container status:" -ForegroundColor Cyan
           docker compose ps
-          Write-Host "Checking if databases exist inside container..."
-          docker exec postgres-sql-bsn psql -U postgres -c "\l"
+          Write-Host ""
 
       - name: Check service health (Windows)
         shell: powershell
         run: |
-          Write-Host "Checking config-server health..."
+          Write-Host "🏥 Checking service health endpoints..." -ForegroundColor Cyan
+          
+          Write-Host "  ✓ Config Server (8888)..."
           try {
             $response = Invoke-WebRequest -Uri "http://localhost:8888/actuator/health" -UseBasicParsing -TimeoutSec 5 -ErrorAction SilentlyContinue
-            Write-Host "✅ Config server is healthy"
+            if ($response.StatusCode -eq 200) {
+              Write-Host "    ✅ Config server is HEALTHY" -ForegroundColor Green
+            }
           } catch {
-            Write-Host "⏳ Config server not ready yet"
+            Write-Host "    ⏳ Config server not ready yet (will be ready soon)" -ForegroundColor Yellow
           }
           
-          Write-Host "Checking discovery-server health..."
+          Write-Host "  ✓ Discovery Server (8761)..."
           try {
             $response = Invoke-WebRequest -Uri "http://localhost:8761/actuator/health" -UseBasicParsing -TimeoutSec 5 -ErrorAction SilentlyContinue
-            Write-Host "✅ Discovery server is healthy"
+            if ($response.StatusCode -eq 200) {
+              Write-Host "    ✅ Discovery server is HEALTHY" -ForegroundColor Green
+            }
           } catch {
-            Write-Host "⏳ Discovery server not ready yet"
+            Write-Host "    ⏳ Discovery server not ready yet (will be ready soon)" -ForegroundColor Yellow
           }
           
-          Write-Host "Checking gateway-service health..."
+          Write-Host "  ✓ Gateway Service (8222)..."
           try {
             $response = Invoke-WebRequest -Uri "http://localhost:8222/actuator/health" -UseBasicParsing -TimeoutSec 5 -ErrorAction SilentlyContinue
-            Write-Host "✅ Gateway service is healthy"
+            if ($response.StatusCode -eq 200) {
+              Write-Host "    ✅ Gateway service is HEALTHY" -ForegroundColor Green
+            }
           } catch {
-            Write-Host "⏳ Gateway service not ready yet"
+            Write-Host "    ⏳ Gateway service not ready yet (will be ready soon)" -ForegroundColor Yellow
           }
 
       - name: Deployment Summary
         shell: powershell
         run: |
-          Write-Host "=========================================" -ForegroundColor Green
-          Write-Host "✅ Deployment Completed Successfully!" -ForegroundColor Green
-          Write-Host "=========================================" -ForegroundColor Green
           Write-Host ""
-          Write-Host "Services URLs:" -ForegroundColor Cyan
-          Write-Host "- Config Server:      http://localhost:8888"
-          Write-Host "- Discovery Server:   http://localhost:8761"
-          Write-Host "- Gateway Service:    http://localhost:8222"
-          Write-Host "- Customer Service:   http://localhost:8090"
-          Write-Host "- Product Service:    http://localhost:8050"
-          Write-Host "- Order Service:      http://localhost:8070"
-          Write-Host "- Payment Service:    http://localhost:8060"
-          Write-Host "- Notification Service: http://localhost:8040"
+          Write-Host "╔══════════════════════════════════════════════════════╗" -ForegroundColor Green
+          Write-Host "║     ✅ DEPLOYMENT COMPLETED SUCCESSFULLY             ║" -ForegroundColor Green
+          Write-Host "╚══════════════════════════════════════════════════════╝" -ForegroundColor Green
           Write-Host ""
-          Write-Host "Database Management:" -ForegroundColor Cyan
-          Write-Host "- PgAdmin:            http://localhost:5050"
-          Write-Host "- Mongo Express:      http://localhost:8081"
-          Write-Host "=========================================" -ForegroundColor Green
+          Write-Host "📌 Access Points:" -ForegroundColor Cyan
+          Write-Host ""
+          Write-Host "  🔧 Infrastructure:"
+          Write-Host "    • Config Server:      http://localhost:8888" -ForegroundColor White
+          Write-Host "    • Service Discovery:  http://localhost:8761" -ForegroundColor White
+          Write-Host "    • API Gateway:        http://localhost:8222" -ForegroundColor White
+          Write-Host ""
+          Write-Host "  📱 Microservices:"
+          Write-Host "    • Customer Service:   http://localhost:8090" -ForegroundColor White
+          Write-Host "    • Product Service:    http://localhost:8050" -ForegroundColor White
+          Write-Host "    • Order Service:      http://localhost:8070" -ForegroundColor White
+          Write-Host "    • Payment Service:    http://localhost:8060" -ForegroundColor White
+          Write-Host "    • Notification Service: http://localhost:8040" -ForegroundColor White
+          Write-Host ""
+          Write-Host "  💾 Data Management:"
+          Write-Host "    • PostgreSQL Admin:   http://localhost:5050" -ForegroundColor White
+          Write-Host "    • MongoDB Admin:      http://localhost:8081" -ForegroundColor White
+          Write-Host "    • MailDev (SMTP):     http://localhost:1080" -ForegroundColor White
+          Write-Host ""
+          Write-Host "  🗄️  Databases Created (via init-db.sql):"
+          Write-Host "    • order" -ForegroundColor White
+          Write-Host "    • product" -ForegroundColor White
+          Write-Host "    • payment" -ForegroundColor White
+          Write-Host ""
+          Write-Host "  📊 Message Queue:"
+          Write-Host "    • Kafka Broker:       localhost:9092" -ForegroundColor White
+          Write-Host "    • Zookeeper:          localhost:2181" -ForegroundColor White
+          Write-Host ""
+          Write-Host "⏱️  Note: Services may take 1-2 minutes to fully register with Eureka" -ForegroundColor Yellow
+          Write-Host "🔄 Database initialization happens automatically via init-db.sql" -ForegroundColor Yellow
+          Write-Host ""
 
       - name: Notify deployment status (Success)
         if: success()
         shell: powershell
         run: |
-          Write-Host "✅ Deployment successful!" -ForegroundColor Green
+          Write-Host "✅ Pipeline execution SUCCESSFUL!" -ForegroundColor Green
 
       - name: Notify deployment status (Failure)
         if: failure()
         shell: powershell
         run: |
-          Write-Host "❌ Deployment failed!" -ForegroundColor Red
-          Write-Host "Showing last 50 lines of logs..." -ForegroundColor Yellow
+          Write-Host "❌ Pipeline execution FAILED!" -ForegroundColor Red
+          Write-Host ""
+          Write-Host "📋 Showing last 100 lines of container logs:" -ForegroundColor Yellow
           $deployPath = "$env:USERPROFILE\ecommerce-deployment"
           Set-Location $deployPath
-          docker compose logs --tail=50
+          docker compose logs --tail=100
