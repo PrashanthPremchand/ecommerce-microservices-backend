@@ -1,8 +1,10 @@
 package com.prashanth.ecommerce.auth;
 
 import com.prashanth.ecommerce.customer.Address;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -26,7 +28,8 @@ public class RegisterRequest {
     @NotBlank
     @Size(min = 8)
     String password;
-    @NotBlank(message = "Address is required")
+    @NotNull(message = "Address is required")
+    @Valid
     Address address;
 
 }
