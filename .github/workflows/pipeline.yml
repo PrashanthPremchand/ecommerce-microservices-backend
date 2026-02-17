@@ -303,6 +303,17 @@ jobs:
     name: Deploy to Local Server
     runs-on: self-hosted
     needs: [build-and-push]
+    env:
+      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+      SPRING_PROFILES_ACTIVE: docker
+      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      MONGO_USERNAME: ${{ secrets.MONGO_USERNAME }}
+      MONGO_PASSWORD: ${{ secrets.MONGO_PASSWORD }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
+      MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
+      PGADMIN_DEFAULT_EMAIL: ${{ secrets.PGADMIN_DEFAULT_EMAIL }}
+      PGADMIN_DEFAULT_PASSWORD: ${{ secrets.PGADMIN_DEFAULT_PASSWORD }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -361,20 +372,6 @@ jobs:
           Set-Location $deployPath
           
           Write-Host "[*] Starting containers with environment variables..." -ForegroundColor Cyan
-          
-          # Set environment variables in PowerShell scope
-          $env:DOCKER_USERNAME = "${{ secrets.DOCKER_USERNAME }}"
-          $env:SPRING_PROFILES_ACTIVE = "docker"
-          $env:POSTGRES_PASSWORD = "${{ secrets.POSTGRES_PASSWORD }}"
-          $env:MONGO_USERNAME = "${{ secrets.MONGO_USERNAME }}"
-          $env:MONGO_PASSWORD = "${{ secrets.MONGO_PASSWORD }}"
-          $env:JWT_SECRET = "${{ secrets.JWT_SECRET }}"
-          $env:MAIL_USERNAME = "${{ secrets.MAIL_USERNAME }}"
-          $env:MAIL_PASSWORD = "${{ secrets.MAIL_PASSWORD }}"
-          $env:PGADMIN_DEFAULT_EMAIL = "${{ secrets.PGADMIN_DEFAULT_EMAIL }}"
-          $env:PGADMIN_DEFAULT_PASSWORD = "${{ secrets.PGADMIN_DEFAULT_PASSWORD }}"
-          
-          # Start containers
           docker compose up -d
           Write-Host "[OK] Containers started" -ForegroundColor Green
 
