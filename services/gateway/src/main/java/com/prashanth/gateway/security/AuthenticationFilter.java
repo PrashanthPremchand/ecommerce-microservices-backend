@@ -28,14 +28,6 @@ public class AuthenticationFilter implements GlobalFilter {
         boolean isProductPost = request.getMethod() == HttpMethod.POST
                 && request.getURI().getPath().contains("/api/v1/products");
 
-        System.out.println("=== AUTH FILTER ===");
-        System.out.println("Path: " + request.getURI().getPath());
-        System.out.println("Method: " + request.getMethod());
-        System.out.println("isApiSecured: " + isApiSecured);
-        System.out.println("isProductPost: " + isProductPost);
-        System.out.println("Has Auth Header: " + request.getHeaders().containsKey(HttpHeaders.AUTHORIZATION));
-
-
         // 2. If it's a secured route OR a Product POST, validate the JWT
         if (isApiSecured || isProductPost) {
             if (!request.getHeaders().containsKey(HttpHeaders.AUTHORIZATION)) {
@@ -43,17 +35,11 @@ public class AuthenticationFilter implements GlobalFilter {
             }
 
             String authHeader = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
-
-            System.out.println("Auth Header present: " + (authHeader != null));
-
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
                 return onError(exchange, HttpStatus.UNAUTHORIZED);
             }
 
             String token = authHeader.substring(7);
-
-            System.out.println("Token valid: " + jwtUtil.isTokenValid(token));
-
             try {
                 if (!jwtUtil.isTokenValid(token)) {
                     return onError(exchange, HttpStatus.UNAUTHORIZED);
