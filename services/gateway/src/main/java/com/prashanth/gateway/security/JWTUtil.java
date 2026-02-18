@@ -46,14 +46,14 @@ public class JWTUtil {
     }
 
     public boolean isTokenValid(String token) {
-
+        System.out.println("Secret key being used: " + secretKey); // ADD THIS
         try {
             Claims claims = extractAllClaims(token);
             return !claims.getExpiration().before(new Date());
         } catch (Exception e) {
+            System.out.println("Token validation error: " + e.getMessage()); // ADD THIS
             return false;
         }
-
     }
 
 }
