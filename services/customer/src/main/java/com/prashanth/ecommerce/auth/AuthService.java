@@ -23,6 +23,7 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final JWTUtil jwtUtil;
     private final PasswordEncoder passwordEncoder;
+    private final RefreshTokenService refreshTokenService;
 
 
     public void register(RegisterRequest request) {
@@ -61,7 +62,14 @@ public class AuthService {
 
         String token = jwtUtil.generateToken(customer);
 
-        return new AuthResponse(token);
+        String refreshToken = refreshTokenService.createdRefreshToken(
+                customer.getId()
+        );
+
+        return new AuthResponse(
+                token,
+                refreshToken
+        );
 
     }
 }
