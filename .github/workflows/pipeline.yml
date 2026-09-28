@@ -11,6 +11,8 @@ on:
       - '.github/workflows/pipeline.yml'
       - 'init-db.sql'
 
+  workflow_dispatch:
+
 jobs:
   compile:
     runs-on: ubuntu-latest
