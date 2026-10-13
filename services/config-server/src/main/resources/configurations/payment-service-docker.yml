@@ -14,3 +14,9 @@ eureka:
   instance:
     hostname: payment-service
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+

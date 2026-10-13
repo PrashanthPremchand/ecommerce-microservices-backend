@@ -4,3 +4,9 @@ eureka:
 
 server:
   port: ${SERVER_PORT:8761}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health

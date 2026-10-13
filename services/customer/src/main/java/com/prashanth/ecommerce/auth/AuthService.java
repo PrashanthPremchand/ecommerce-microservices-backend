@@ -62,13 +62,27 @@ public class AuthService {
 
         String token = jwtUtil.generateToken(customer);
 
-        String refreshToken = refreshTokenService.createdRefreshToken(
+        String refreshToken = refreshTokenService.createRefreshToken(
                 customer.getId()
         );
 
         return new AuthResponse(
                 token,
                 refreshToken
+        );
+
+    }
+
+    public AuthResponse refresh(String rawRefreshToken) {
+
+        RefreshToken refreshToken = refreshTokenService.validateRefreshToken(rawRefreshToken);
+        Customer customer = customerRepository
+                .findById(refreshToken.getCustomerId())
+                .orElseThrow(() -> new IllegalArgumentException("Customer not found"));
+        String accessToken = jwtUtil.generateToken(customer);
+        return new AuthResponse(
+                accessToken,
+                rawRefreshToken
         );
 
     }

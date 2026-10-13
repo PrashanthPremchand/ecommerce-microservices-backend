@@ -115,6 +115,8 @@ services:
         condition: service_healthy
       discovery-server:
         condition: service_healthy
+      kafka:
+        condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: docker,native
       SPRING_CLOUD_CONFIG_URI: http://config-server:8888
@@ -141,6 +143,8 @@ services:
         condition: service_healthy
       discovery-server:
         condition: service_healthy
+      kafka:
+        condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: docker,native
       SPRING_CLOUD_CONFIG_URI: http://config-server:8888
@@ -166,7 +170,7 @@ services:
       discovery-server:
         condition: service_healthy
       kafka:
-        condition: service_started
+        condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: docker,native
       SPRING_CLOUD_CONFIG_URI: http://config-server:8888
@@ -200,6 +204,12 @@ services:
     networks:
       - microservices-net
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"%%{POSTGRES-USER}\" -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
 
   pgadmin:
     container_name: ms_pgadmin
@@ -297,6 +307,12 @@ services:
     networks:
       - microservices-net
     restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "wget -q --spider http://localhost:8090/actuator/health || exit 1" ]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
 
   mail-dev:
     container_name: ms_mail_dev

@@ -23,3 +23,9 @@ server:
 eureka:
   instance:
     hostname: notification-service
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health

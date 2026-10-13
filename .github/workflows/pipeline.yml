@@ -345,11 +345,17 @@ jobs:
           Set-Location $deployPath
           Write-Host "[*] Stopping containers and removing volumes to reset DBs..." -ForegroundColor Yellow
           try {
-            # The -v is CRITICAL. It forces PostgreSQL to run init-db.sql on the next start.
-            docker compose down --remove-orphans -v
-            Write-Host "[OK] Old containers and volumes removed successfully" -ForegroundColor Green
+            # Stop and remove containers without deleting database volumes.
+            docker compose down --remove-orphans
+          
+            if ($LASTEXITCODE -ne 0) {
+            throw "Docker Compose failed to stop the containers."
+          }
+          
+            Write-Host "[OK] Containers stopped and removed. Database volumes preserved." -ForegroundColor Green
           } catch {
-            Write-Host "[!] No running containers to stop or error occurred" -ForegroundColor Yellow
+            Write-Host "[ERROR] Failed to stop containers: $_" -ForegroundColor Red
+            exit 1
           }
           Start-Sleep -Seconds 3
 

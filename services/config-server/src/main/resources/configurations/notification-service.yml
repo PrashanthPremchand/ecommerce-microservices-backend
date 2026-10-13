@@ -34,3 +34,9 @@ spring:
           writetimeout: 5000
 server:
   port: 8040
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health

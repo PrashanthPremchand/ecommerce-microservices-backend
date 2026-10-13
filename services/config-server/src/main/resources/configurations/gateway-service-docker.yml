@@ -9,3 +9,9 @@ application:
 eureka:
   instance:
     hostname: gateway-service
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health

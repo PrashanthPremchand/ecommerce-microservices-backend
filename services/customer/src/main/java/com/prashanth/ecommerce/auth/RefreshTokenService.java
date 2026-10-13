@@ -18,7 +18,30 @@ public class RefreshTokenService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final SecureRandom secureRandom = new SecureRandom();
 
-    public String createdRefreshToken(String customerId) {
+    public RefreshToken findToken(String rawToken) {
+
+        String tokenHash = hashToken(rawToken);
+        return refreshTokenRepository.findByTokenHash(tokenHash)
+                .orElseThrow( () -> new IllegalArgumentException("Invalid refresh token"));
+
+
+    }
+
+    public RefreshToken validateRefreshToken(String rawToken) {
+
+        RefreshToken refreshToken = findToken(rawToken);
+        if (refreshToken.isRevoked()) {
+            throw new IllegalArgumentException("Token is revoked");
+        }
+        if (refreshToken.getExpiresAt().isBefore(Instant.now())) {
+            throw new IllegalArgumentException("Token is expired");
+        }
+
+        return refreshToken;
+
+    }
+
+    public String createRefreshToken(String customerId) {
 
         String rawToken = generateToken();
         String tokenHash = hashToken(rawToken);
@@ -38,7 +61,7 @@ public class RefreshTokenService {
     private String hashToken(String rawToken) {
 
         try {
-            MessageDigest digest = MessageDigest.getInstance("SHA_256");
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
             byte[] hash = digest.digest(rawToken.getBytes(StandardCharsets.UTF_8));
             return Base64.getEncoder().encodeToString(hash);
         } catch (NoSuchAlgorithmException e) {

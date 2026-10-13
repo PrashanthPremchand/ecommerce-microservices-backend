@@ -20,3 +20,8 @@ application:
     payment-url: http://${GATEWAY_HOST:gateway-service}:${GATEWAY_PORT:8222}/api/v1/payments
     product-url: http://${GATEWAY_HOST:gateway-service}:${GATEWAY_PORT:8222}/api/v1/products
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
