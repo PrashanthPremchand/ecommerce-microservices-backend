@@ -308,9 +308,11 @@ services:
       - microservices-net
     restart: unless-stopped
     healthcheck:
-      test: [ "CMD-SHELL", "wget -q --spider http://localhost:8090/actuator/health || exit 1" ]
+      test:
+        - CMD-SHELL
+        - "kafka-broker-api-versions --bootstrap-server localhost:29092 > /dev/null 2>&1"
       interval: 15s
-      timeout: 5s
+      timeout: 10s
       retries: 10
       start_period: 60s
 
