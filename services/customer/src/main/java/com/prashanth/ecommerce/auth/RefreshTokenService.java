@@ -1,6 +1,7 @@
 package com.prashanth.ecommerce.auth;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
@@ -17,6 +18,9 @@ public class RefreshTokenService {
 
     private final RefreshTokenRepository refreshTokenRepository;
     private final SecureRandom secureRandom = new SecureRandom();
+
+    @Value("${application.security.refresh-token.expiration}")
+    private long refreshTokenExpiration;
 
     public RefreshToken findToken(String rawToken) {
 
@@ -50,7 +54,7 @@ public class RefreshTokenService {
                 .customerId(customerId)
                 .tokenHash(tokenHash)
                 .createdAt(now)
-                .expiresAt(now.plus(30, ChronoUnit.DAYS))
+                .expiresAt(now.plus(refreshTokenExpiration, ChronoUnit.DAYS))
                 .revoked(false)
                 .build();
         refreshTokenRepository.save(refreshToken);
