@@ -13,7 +13,7 @@ import java.time.Instant;
 @Getter
 @Setter
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@Document(collation = "refresh_tokens")
+@Document(collection = "refresh_tokens")
 public class RefreshToken {
 
     @Id
