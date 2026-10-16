@@ -1,5 +1,6 @@
 package com.prashanth.ecommerce.auth;
 
+import com.prashanth.ecommerce.exception.InvalidRefreshTokenException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -26,7 +27,7 @@ public class RefreshTokenService {
 
         String tokenHash = hashToken(rawToken);
         return refreshTokenRepository.findByTokenHash(tokenHash)
-                .orElseThrow( () -> new IllegalArgumentException("Invalid refresh token"));
+                .orElseThrow( () -> new InvalidRefreshTokenException("Invalid refresh token"));
 
 
     }

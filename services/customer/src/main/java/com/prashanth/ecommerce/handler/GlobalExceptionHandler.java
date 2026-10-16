@@ -2,6 +2,7 @@ package com.prashanth.ecommerce.handler;
 
 import com.prashanth.ecommerce.exception.CustomerAlreadyExistException;
 import com.prashanth.ecommerce.exception.CustomerNotFoundException;
+import com.prashanth.ecommerce.exception.InvalidRefreshTokenException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -41,6 +42,15 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
                 .body(new ErrorResponse(errors));
+    }
+
+    @ExceptionHandler(InvalidRefreshTokenException.class)
+    public ResponseEntity<String> handle(InvalidRefreshTokenException e) {
+
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(e.getMessage());
+
     }
 
 }
