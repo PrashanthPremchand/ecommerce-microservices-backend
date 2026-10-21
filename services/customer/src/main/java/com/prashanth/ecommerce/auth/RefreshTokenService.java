@@ -10,7 +10,6 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 
 @Service
@@ -55,7 +54,7 @@ public class RefreshTokenService {
                 .customerId(customerId)
                 .tokenHash(tokenHash)
                 .createdAt(now)
-                .expiresAt(now.plus(refreshTokenExpiration, ChronoUnit.DAYS))
+                .expiresAt(now.plusMillis(refreshTokenExpiration))
                 .revoked(false)
                 .build();
         refreshTokenRepository.save(refreshToken);

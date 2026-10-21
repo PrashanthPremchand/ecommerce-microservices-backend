@@ -1,6 +1,6 @@
 package com.prashanth.ecommerce.auth;
 
-import jakarta.persistence.Id;
+import org.springframework.data.annotation.Id;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.springframework.data.mongodb.core.mapping.Document;
