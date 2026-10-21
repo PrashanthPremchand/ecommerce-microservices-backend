@@ -4,6 +4,7 @@ import com.prashanth.ecommerce.customer.Customer;
 import com.prashanth.ecommerce.customer.CustomerRepository;
 import com.prashanth.ecommerce.customer.CustomerService;
 import com.prashanth.ecommerce.exception.CustomerAlreadyExistException;
+import com.prashanth.ecommerce.exception.InvalidRefreshTokenException;
 import com.prashanth.ecommerce.role.Role;
 import com.prashanth.ecommerce.security.JWTUtil;
 import jakarta.validation.Valid;
@@ -78,7 +79,7 @@ public class AuthService {
         RefreshToken refreshToken = refreshTokenService.validateRefreshToken(rawRefreshToken);
         Customer customer = customerRepository
                 .findById(refreshToken.getCustomerId())
-                .orElseThrow(() -> new IllegalArgumentException("Customer not found"));
+                .orElseThrow(() -> new InvalidRefreshTokenException("Customer not found"));
         String accessToken = jwtUtil.generateToken(customer);
         return new AuthResponse(
                 accessToken,
