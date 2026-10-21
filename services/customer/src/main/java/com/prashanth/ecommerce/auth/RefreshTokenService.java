@@ -35,10 +35,10 @@ public class RefreshTokenService {
 
         RefreshToken refreshToken = findToken(rawToken);
         if (refreshToken.isRevoked()) {
-            throw new IllegalArgumentException("Token is revoked");
+            throw new InvalidRefreshTokenException("Token is revoked");
         }
         if (refreshToken.getExpiresAt().isBefore(Instant.now())) {
-            throw new IllegalArgumentException("Token is expired");
+            throw new InvalidRefreshTokenException("Token is expired");
         }
 
         return refreshToken;
