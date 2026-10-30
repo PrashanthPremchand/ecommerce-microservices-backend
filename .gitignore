@@ -1,0 +1,19 @@
+# Environment variables and scerets
+.env
+.env.*
+!.env.example
+
+# Java / maven build output
+**/target/
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+
+#Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
