@@ -8,6 +8,7 @@ spring:
       database: ${MONGO_DATABASE:customer}
       authentication-database: ${MONGO_AUTH_DB:admin}
   kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:29092}
     consumer:
       bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:29092}
 
