@@ -3,6 +3,11 @@ package com.prashanth.ecommerce.auth;
 import com.prashanth.ecommerce.exception.InvalidRefreshTokenException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.mongodb.core.FindAndModifyOptions;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
@@ -18,9 +23,39 @@ public class RefreshTokenService {
 
     private final RefreshTokenRepository refreshTokenRepository;
     private final SecureRandom secureRandom = new SecureRandom();
+    private final MongoTemplate mongoTemplate;
 
     @Value("${application.security.refresh-token.expiration}")
     private long refreshTokenExpiration;
+
+
+
+    public RefreshToken consumeRefreshToken(String rawToken) {
+
+        String tokenHash = hashToken(rawToken);
+        Instant now = Instant.now();
+        Query query = new Query(
+                Criteria.where("tokenHash").is(tokenHash)
+                        .and("revoked").is(false)
+                        .and("expiresAt").gt(now)
+        );
+        Update update = new Update()
+                .set("revoked", true);
+        FindAndModifyOptions options = FindAndModifyOptions
+                        .options()
+                        .returnNew(false);
+        RefreshToken consumedToken = mongoTemplate.findAndModify(
+                query,
+                update,
+                options,
+                RefreshToken.class
+        );
+        if (consumedToken == null) {
+            throw new InvalidRefreshTokenException("Invalid or already consumed refresh token");
+        }
+        return consumedToken;
+
+    }
 
     public RefreshToken findToken(String rawToken) {
 

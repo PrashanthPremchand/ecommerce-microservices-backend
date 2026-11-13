@@ -80,10 +80,12 @@ public class AuthService {
         Customer customer = customerRepository
                 .findById(refreshToken.getCustomerId())
                 .orElseThrow(() -> new InvalidRefreshTokenException("Customer not found"));
+        refreshToken = refreshTokenService.consumeRefreshToken(rawRefreshToken);
+        String newRawRefreshToken = refreshTokenService.createRefreshToken(customer.getId());
         String accessToken = jwtUtil.generateToken(customer);
         return new AuthResponse(
                 accessToken,
-                rawRefreshToken
+                newRawRefreshToken
         );
 
     }

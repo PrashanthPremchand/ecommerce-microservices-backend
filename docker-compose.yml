@@ -230,7 +230,7 @@ services:
 
   mongodb:
     container_name: ms_mongo_db
-    image: mongo:latest
+    image: mongo:8.2.5
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
