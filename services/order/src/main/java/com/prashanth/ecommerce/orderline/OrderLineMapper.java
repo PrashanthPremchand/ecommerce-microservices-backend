@@ -1,10 +1,8 @@
 package com.prashanth.ecommerce.orderline;
 
 import com.prashanth.ecommerce.order.Order;
-import com.prashanth.ecommerce.order.OrderResponse;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
 
 @Service
 public class OrderLineMapper {
@@ -14,11 +12,7 @@ public class OrderLineMapper {
         return OrderLine.builder()
                 .id(orderLineRequest.id())
                 .quantity(orderLineRequest.quantity())
-                .order(
-                        Order.builder()
-                                .id(orderLineRequest.id())
-                                .build()
-                )
+                .productId(orderLineRequest.productId())
                 .build();
 
     }

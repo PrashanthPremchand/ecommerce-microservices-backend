@@ -1,5 +1,6 @@
 package com.prashanth.ecommerce.orderline;
 
+import com.prashanth.ecommerce.order.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -12,10 +13,13 @@ public class OrderLineService {
 
     private final OrderLineRepository orderLineRepository;
     private final OrderLineMapper orderLineMapper;
+    private final OrderRepository orderRepository;
 
     public Integer saveOrderLine(OrderLineRequest orderLineRequest) {
 
         var orderLine = orderLineMapper.toOrderLine(orderLineRequest);
+        var order = orderRepository.getReferenceById(orderLineRequest.orderId());
+        orderLine.setOrder(order);
         return orderLineRepository.save(orderLine).getId();
 
     }

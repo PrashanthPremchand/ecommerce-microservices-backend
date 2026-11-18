@@ -1,6 +1,6 @@
 package com.prashanth.ecommerce.customer;
 
-import com.prashanth.ecommerce.config.FeignClientConfig;
+import com.prashanth.feignconfig.FeignClientConfig;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
